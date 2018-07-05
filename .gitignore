@@ -1,2 +1,8 @@
 
 *.xml
+.idea/workspace.xml
+*.pyc
+.DS_Store
+.idea/inspectionProfiles/
+__pycache__/
+docs/.DS_Store

@@ -2,13 +2,10 @@ import yaml
 import configparser
 from pathlib import Path
 
-import arrow
 from bs4 import BeautifulSoup, Comment
-from modules.api import get_resource
-from modules.aws import get_s3_bucket, get_image
 
 
-def get_path(target=None):
+def get_path_setting(target=None):
     """
     Gets a path specified in the Files section of the settings.ini file.
     :param target: One of the variable names in the FILES section of settings.ini
@@ -54,10 +51,10 @@ def get_loader_map():
     :return: Dict of article ids and hc subdomains
     """
     article_hc_map = {}
-    loader_path = get_path('loader')
+    loader_path = get_path_setting('loader')
     with loader_path.open() as f:
         loader_list = f.read().splitlines()
-    articles_db = get_path('articles_db')
+    articles_db = get_path_setting('articles_db')
     with articles_db.open(mode='r') as f:
         articles_db = yaml.load(f)
     for article in articles_db:
@@ -79,112 +76,10 @@ def get_loader_map():
 
 
 def get_image_skip_list():
-    skip_list_path = get_path('image_skip_list')
+    skip_list_path = get_path_setting('image_skip_list')
     with skip_list_path.open() as f:
         skip_list = f.read().splitlines()
     return skip_list
-
-
-def download_articles(article_hc_map, en_image_articles):
-    """
-    Downloads each article from the specified Help Center, converts the HTML into a Beautiful Soup tree, and stores it
-    in a dictionary with necessary data for creating the handoff.
-    :param article_hc_map: Dictionary of article ids and hc subdomains. Example {id: 123, hc: 'support'}
-    :param en_image_articles: List of ids of articles with images to exclude from the handoff
-    :return: Dictionary of articles. Each object consists of an article id, hc, tree, and S3 image names
-    """
-    handoff = []
-    for article in article_hc_map:
-        root = 'https://{}.zendesk.com/api/v2/help_center'.format(article_hc_map[article])
-        url = root + '/articles/{}.json'.format(article)
-        print(f'- {article}')
-        response = get_resource(url)
-        if response is False:
-            print('Double-check the article id in loc spreadsheet and the master articles file.')
-            exit()
-        tree = get_article_tree(response)
-        if tree is None:
-            continue
-
-        if en_image_articles and article in en_image_articles:
-            images = []
-        else:
-            images = get_article_images(tree)
-
-        handoff.append({'id': article,
-                        'hc': article_hc_map[article],
-                        'tree': tree,
-                        'images': images})
-    return handoff
-
-
-def write_articles(handoff, handoff_path):
-    """
-
-    :param handoff: A list of article dictionaries with id, hc, tree, & images properties
-    :param handoff_path: A Path object that specifies the handoff folder
-    :return:
-    """
-    for article in handoff:
-        markup = get_article_markup(article['tree'])
-        if markup is None:
-            print('The {} article {} in Help Center has no content. Skipping.'.format(article['hc'], article['id']))
-            continue
-        handoff_article_folder = handoff_path / article['hc'] / 'articles'
-        if not handoff_article_folder.exists():
-            handoff_article_folder.mkdir(parents=True)
-        filename = '{}.html'.format(article['id'])
-        article_path = handoff_article_folder / filename
-        article_path.write_text(markup,  encoding='utf-8')
-        print('- /{}/{}'.format(article['hc'], filename))
-
-
-def download_images(handoff, handoff_path):
-    """
-    Downloads the images for each article from S3.
-    :param: handoff: A list of article dictionaries with id, hc, tree, & images properties
-    :param: handoff_path: A Path object that specifies the handoff folder
-    :return:
-    """
-    bucket_name = get_aws_setting('bucket_name')
-    key_prefix = get_aws_setting('key_prefix')
-    loc_key_prefix = get_aws_setting('loc_key_prefix')
-    bucket = get_s3_bucket(bucket_name)
-
-    for article in handoff:
-        if not article['images']:   # article contains no images: go to next article
-            continue
-        for image_name in article['images']:
-            image_qualifies = True
-            print(f'\nChecking {image_name}')
-
-            key = key_prefix + image_name
-            print(f'- getting {key}')
-            image = get_image(bucket, key)
-            if image == 'error':
-                continue
-
-            loc_key = loc_key_prefix + image_name
-            print(f'- getting {loc_key} for comparison')
-            localized_image = get_image(bucket, loc_key)
-            if localized_image == 'error':
-                continue
-
-            if localized_image:
-                if arrow.get(localized_image.last_modified) > arrow.get(image.last_modified):
-                    image_qualifies = False
-
-            if image_qualifies:
-                handoff_image_folder = handoff_path / article['hc'] / 'images'
-                if not handoff_image_folder.exists():
-                    handoff_image_folder.mkdir(parents=True)
-                print('- writing {}/{}'.format(article['hc'], image_name))
-                filename = '{}/{}'.format(str(handoff_image_folder), image_name)
-                image.download_file(filename)
-            else:
-                print('- skipping (localized image is newer on s3, so the English version hasn\'t been updated '
-                      'since the last handoff)')
-                article['images'].remove(image_name)
 
 
 def get_article_tree(response):
@@ -234,15 +129,6 @@ def get_article_images(tree):
             continue
         article_images.append(image_url.name)
     return article_images
-
-
-def write_handoff_manifest(handoff, handoff_path):
-    manifest = []
-    for article in handoff:
-        manifest.append({'article': '{}.html'.format(article['id']), 'hc': article['hc'],
-                         'images': article['images']})
-    handoff_map_file = handoff_path / 'manifest.yml'
-    handoff_map_file.write_text(yaml.dump(manifest, default_flow_style=False), encoding='utf-8')
 
 
 def package_translation(file):

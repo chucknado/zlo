@@ -1,15 +1,25 @@
 import argparse
 
-from modules.handoffs import create_handoff
+from modules.handoffs import download_articles, write_articles, download_images, write_manifest
+from modules.helpers import get_path_setting, get_loader_map
 
 
 def create(arguments):
     """
-    :param arguments: handoff_name (str), exclude (list of ints)
+    Creates a handoff package in the handoffs folder specified in settings.ini.
+    :param arguments: handoff_name (str), no_images (list of ints)
     :return: None
     """
+    handoff_path = get_path_setting('handoffs') / arguments.handoff_name
+    if handoff_path.exists():
+        print('A handoff with that name already exists. Exiting.')
+        exit()
+    loader_map = get_loader_map()
+    handoff = download_articles(loader_map, arguments.no_images)
+    write_articles(handoff, handoff_path)
+    download_images(handoff, handoff_path)
+    write_manifest(handoff, handoff_path)
 
-    create_handoff(arguments.handoff_name, arguments.no_images)
 
 # def register(arguments):
 #     """
