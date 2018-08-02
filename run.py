@@ -1,9 +1,19 @@
-# from modules.handoffs import create_handoff, publish_handoff
-from modules.helpers import get_image_skip_list
+# from modules.handoff import create_email_copy
+# from modules.helpers import combine_latest_registries_tmp, get_path_setting, get_localized_content
 # from modules.aws import get_s3_bucket, get_image
+# from modules.helpers import combine_latest_registries_tmp
+#
+#
+# combine_latest_registries_tmp()
 
-skip_list = get_image_skip_list()
-print(skip_list)
+
+# get_manifest()
+# combine_latest_registries_tmp()
+# loc_content = get_localized_content()
+# print(loc_content)
+
+# path = get_path_setting()
+# print(path)
 
 # create_handoff('test8')
 

@@ -13,12 +13,12 @@ def get_s3_bucket(name):
     return bucket
 
 
-def get_image(bucket, key):
+def download_image(bucket, key):
     """
     Returns an object (i.e., image) in the specified s3 bucket. Checks if it exists first.
-    :param bucket: s3 bucket
+    :param bucket: S3 bucket object
     :param key: Image name, including any prefix (i.e., path) to the bucket root. Example: 'docs/en/doggo.png'
-    :return: Object
+    :return: File object
     """
     try:
         bucket.Object(key).load()
@@ -29,3 +29,14 @@ def get_image(bucket, key):
         else:
             print('- error code {}'.format(e.response['Error']['Code']))   # something other than a 404
             return 'error'
+
+
+def upload_image(bucket, image_path, key):
+    """
+    Uploads a file to your S3 bucket.
+    :param bucket: S3 bucket object
+    :param image_path: Local path to the image file. Can be a pathlib object
+    :param key: Name of the file in the bucket, including the virtual path. Example: 'docs/fr/doggo.png'
+    :return: None
+    """
+    bucket.upload_file(str(image_path), Key=key, ExtraArgs={'ACL': 'public-read'})

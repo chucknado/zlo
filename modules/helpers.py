@@ -1,75 +1,108 @@
 import yaml
+import json
 import configparser
+from shutil import copyfile
 from pathlib import Path
 
 from bs4 import BeautifulSoup, Comment
+from modules.api import get_resource_list
 
 
-def get_path_setting(target=None):
+def combine_latest_registries_tmp():
+    locales = ['de', 'es', 'fr', 'ja', 'pt-br']
+    localized_content = {'de': {'articles': [], 'images': []},
+                         'es': {'articles': [], 'images': []},
+                         'fr': {'articles': [], 'images': []},
+                         'ja': {'articles': [], 'images': []},
+                         'pt-br': {'articles': [], 'images': []}}
+    zep_root = Path('/Users/cnadeau/production/zep/cache/')
+    folders = ['bime', 'chat', 'explore', 'help', 'support']
+    for folder in folders:
+        path = zep_root / folder / 'localized_articles.json'
+        with path.open() as f:
+            articles = json.load(f)
+        for locale in locales:
+            localized_content[locale]['articles'].extend(articles[locale])
+
+        path = zep_root / folder / 'localized_images.json'
+        with path.open() as f:
+            images = json.load(f)
+        for locale in locales:
+            localized_content[locale]['images'].extend(images[locale])
+
+    # remove duplicates
+    for locale in locales:
+        localized_content[locale]['articles'] = list(set(localized_content[locale]['articles']))
+        localized_content[locale]['images'] = list(set(localized_content[locale]['images']))
+
+    file = get_path_setting('data') / 'localized_content.json'
+    with file.open(mode='w') as f:
+        json.dump(localized_content, f, sort_keys=True, indent=2)
+
+
+def get_path_setting(name=''):
     """
     Gets a path specified in the Files section of the settings.ini file.
-    :param target: One of the variable names in the FILES section of settings.ini
-    :return: A Path object from the pathlib library
+    :param name: One of the variable names in the FILES section of settings.ini
+    :return: Path object from the pathlib library
     """
-    if target is None:
-        print('Missing argument for get_path(). Exiting.')
-        exit()
-    elif target not in ['handoffs', 'loader', 'image_skip_list', 'articles_db']:
-        print(f'\'{target}\' is not a valid argument for get_path(). Exiting.')
-        exit()
     config = configparser.ConfigParser()
     config.read('settings.ini')
-    path = Path(config['FILES'][target])
+    try:
+        config['PATHS'][name]
+    except KeyError:
+        print(f'\'{name}\' is not a valid argument for get_path(). Exiting.')
+        exit()
+    path = Path(config['PATHS'][name])
     if path.exists():
         return path
     else:
-        print('The path in settings.ini does not exist. Exiting.')
+        print('The path in settings.ini does not exist on your system. Exiting.')
         exit()
 
 
-def get_aws_setting(name=None):
+def get_aws_setting(name=''):
     """
     Gets a setting specified in the AWS section of the settings.ini file.
     :param name: One of the variable names in the AWS section of settings.ini
     :return: String
     """
-    if name is None:
-        print('Missing argument for get_aws_setting(). Exiting.')
-        exit()
-    elif name not in ['bucket_name', 'key_prefix', 'loc_key_prefix']:
-        print(f'\'{name}\' is not a valid argument for get_aws_setting(). Exiting.')
-        exit()
     config = configparser.ConfigParser()
     config.read('settings.ini')
+    try:
+        config['AWS'][name]
+    except KeyError:
+        print(f'\'{name}\' is not a valid argument for get_aws_path(). Exiting.')
+        exit()
     return config['AWS'][name]
 
 
-def get_loader_map():
+def get_download_list():
     """
     Reads the handoff's loader file and looks up loader ids in the articles database to create an id:hc map.
     Exits if any loader article is not in the database
     :return: Dict of article ids and hc subdomains
     """
-    article_hc_map = {}
+    download_list = {}
     loader_path = get_path_setting('loader')
     with loader_path.open() as f:
-        loader_list = f.read().splitlines()
+        loader = f.read().splitlines()
     articles_db = get_path_setting('articles_db')
     with articles_db.open(mode='r') as f:
         articles_db = yaml.load(f)
     for article in articles_db:
-        if str(article['id']) in loader_list:
-            article_hc_map[article['id']] = article['hc']
-            loader_list.remove(str(article['id']))
-            if len(loader_list) == 0:
-                return article_hc_map
+        if str(article['id']) in loader:
+            download_list[article['id']] = article['hc']
+            loader.remove(str(article['id']))
+            if len(loader) == 0:
+                return download_list
 
-    if len(loader_list) > 0:
-        if len(loader_list) == 1:
-            print('The following article is missing from the articles.yml file: {}'.format(loader_list[0]))
+    if len(loader) > 0:
+        if len(loader) == 1:
+            print('The following article is missing from the articles.yml file: {}'.format(loader[0]))
         else:
-            print('Add the following articles are missing from the articles.yml file:')
-            for article in loader_list:
+            print('The following articles are missing from the articles.yml file:')
+            for article in loader:
                 print(f'  - {article}')
         print('Exiting.')
         exit()
@@ -82,9 +115,9 @@ def get_image_skip_list():
     return skip_list
 
 
-def get_article_tree(response):
+def create_tree_from_api(response):
     """
-    Returns a BeautifulSoup tree object from the specified HTML file
+    Returns a BeautifulSoup tree object from the HTML returned by the HC API
     :param response: Response from the Articles API containing the article. Converted to Dict from JSON
     :return: A tree object
     """
@@ -103,6 +136,12 @@ def get_article_tree(response):
     h1 = tree.new_tag('h1')
     h1.string = response['title']
     tree.body.insert(0, h1)
+    return tree
+
+
+def create_tree_from_file(path):
+    html = path.read_text(encoding='utf-8')
+    tree = BeautifulSoup(html, 'lxml')
     return tree
 
 
@@ -131,23 +170,36 @@ def get_article_images(tree):
     return article_images
 
 
-def package_translation(file):
-    """
-    Creates a payload from an HTML file for a PUT translation request.
-    :param file: A path object to an HTML file
-    :return: Dictionary with a title and body property
-    """
+def get_localized_content_registry():
+    file = get_path_setting('data') / 'localized_content.json'
     with file.open(mode='r') as f:
-        html_source = f.read()
-    tree = BeautifulSoup(html_source, 'lxml')
-    title = tree.h1.string.strip()
-    tree.h1.decompose()
-    body = str(tree.body)
-    if title is None or body is None:
-        print('ERROR: title or body problem in \"{}\" (extra inner tags, etc)'.format(file.name))
+        return json.load(f)
+
+
+def write_localized_content_registry(localized_content):
+    file = get_path_setting('data') / 'localized_content.json'
+    backup_file = get_path_setting('data') / 'localized_content_backup.json'
+    copyfile(file, backup_file)
+    with file.open(mode='w', encoding='utf-8') as f:
+        return json.dump(localized_content, f, sort_keys=True, indent=2)
+
+
+def get_http_method(article_id, article_locale, hc):
+    """
+    Check if any missing translations of the article exist. Use post for them, otherwise put.
+    :param article_id:
+    :param article_locale:
+    :param hc:
+    :return:
+    """
+    root = 'https://{}.zendesk.com/api/v2/help_center'.format(hc)
+    url = root + '/articles/{}/translations/missing.json'.format(article_id)
+    response = get_resource_list(url, list_name='locales', paginate=False)
+    if response is False:
+        print('\nError getting missing translations for {}. Exiting.'.format(article_id))
         exit()
-    package = {
-        'title': title,
-        'body': body
-    }
-    return {'translation': package}
+    missing_translations = response
+    if article_locale in missing_translations:  # get http method to use for article
+        return 'post'
+    else:
+        return 'put'

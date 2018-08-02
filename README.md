@@ -3,6 +3,7 @@
 
 This tool gets articles from Help Center to hand off to localization vendors, and publishes the returned localized articles to Help Center.
 
+The tool assumes your image files are hosted on Amazon S3, which has an API that lets you download and upload images. You can modify the tool if your images are hosted elsewhere.
 
 ### Requirements
 
@@ -16,72 +17,34 @@ You must also install the following third-party libraries:
 - Arrow - https://arrow.readthedocs.io/en/latest/
 
 
-
 ### Setting up
 
-1. Map your DITA file names to their corresponding Help Center ids. To do so, create a yml file called **articles.yml**. Enter the following information for each article: DITA filename without the file extension, Help Center subdomain, and article id.
+1. Download or clone this project.
 
-    Example:
+2. Create a file called **articles.yml**.
 
-    ```yml
-    - dita: zug_placeholders
-      hc: support
-      id: 203662116
-    - dita: zug_markdown
-      hc: support
-      id: 203661586
-    ```
+    This file will eventually list all the articles you've handed off for localization.
 
-    Make sure to follow the format in the example.
+    Save the file anywhere on your computer or on a shared drive. The Zendesk Docs team keeps the file in our Google Team Drive so that all the writers can access it:
 
-    You can keep adding mappings to the same yml file. You don't need to create a yml file each time you publish.
+	`Documentation/Zendesk User Guides/All products/production/articles.yml`
 
-    Make sure each article id is unique in the yml file.
+    See [Update the article database](https://github.com/chucknado/zlo/blob/master/docs/localizing_articles.md#update-the-article-database) in the zlo documentation.
 
-    Don't include the .dita file extension.
-
-    Save the file anywhere on your computer.
-
-2. In the zpu project files, update the **auth.py** file with your Zendesk username and API token. Example:
+3. In the zlo project files, update the **modules/auth.py** file with your Zendesk username and API token. Example:
 
     ```
     def get_auth():
         return '{}/token'.format('jdoe@example.com'), '9a8b7c6d5e4f3g2h1'
     ```
 
-3. In the **[HC]** section of the **settings.ini** file, specify your Help Center settings. Example:
+4. In the **[PATHS]** section of the **settings.ini** file, specify the paths to various folders and files used by the tool, including the path to the **articles.yml** file you created above. Create the other folders and files.
 
-    ```text
-    [HC]
-    subdomain=support
-    locale=en-us
-	```
+5. In the **[AWS]** section of the **settings.ini** file, specify the name of your S3 bucket, the key prefix of the default-language image files, and one key prefix of your translated image files.
 
-4. In the **[MAP]** section of the **settings.ini** file, specify the path to the **ditamap.yml** file. Example:
-    
-    ```text
-    [MAP]
-    path=/Volumes/GoogleDrive/Team Drives/Documentation/All products/production/ditamap.yml
-    ```
+    The loc key prefix is used to compare the default language images against the images in a different language to determine whether to include them in the handoff.
 
-
-### Publishing files
-
-1. Use your DITA authoring tool to batch transform the DITA files to HTML.
-
-2. Copy the transformed HTML files to the **zpu/transformed_dita_files** folder.
-
-3. In your command line interface, navigate to your **zpu** folder on your computer.
-
-4. Run the following command:
-
-    ```bash
-    $ python3 publish_files.py
-    ```
-
-    The tool parses each HTML file and publishes it to HC.
-
-5. When you're done, move or delete the HTML files in the **zpu/transformed_dita_files** folder to prepare for your next batch of files.
+6. Create an AWS credential file on your system. See [Configuration](https://boto3.readthedocs.io/en/latest/guide/quickstart.html#configuration) in the Boto 3 Quickstart guide.
 
 
 ### Terms of use
