@@ -1,4 +1,3 @@
-import yaml
 import re
 from urllib.parse import urlparse
 
@@ -110,20 +109,6 @@ def download_images(handoff, handoff_path):
                 # skipping - localized image is newer on s3, so en-us translation has not been updated
                 #     since the last handoff
                 article['images'].remove(image_name)
-
-
-def write_manifest(handoff, handoff_path):
-    """
-    Writes a yml file listing the articles in the handoff and their corresponding Help Centers.
-    :param handoff: A list of article dictionaries returned by download_articles()
-    :param handoff_path: A Path object that specifies the handoff folder
-    :return:
-    """
-    manifest = []
-    for article in handoff:
-        manifest.append({'article': '{}.html'.format(article['id']), 'hc': article['hc']})
-    handoff_map_file = handoff_path / 'manifest.yml'
-    handoff_map_file.write_text(yaml.dump(manifest, default_flow_style=False), encoding='utf-8')
 
 
 def print_handoff_email(handoff_name):
@@ -252,15 +237,14 @@ def upload_articles(deliverable):
         article['title'] = title
 
 
-def print_publish_email(handoff_name):
+def print_publish_email(deliverable, handoff_name):
     utc = arrow.utcnow()
     local = utc.to('US/Pacific')
     date = local.format('YYYY-MM-DD')
-    manifest_path = helpers.get_path_setting('handoffs') / handoff_name / 'manifest.yml'
-    if not manifest_path.exists():
-        return None
-    with manifest_path.open() as f:
-        manifest = yaml.load(f)
+    published_articles = []
+    for article in deliverable['articles']:
+        if article['locale'] == 'fr':
+            published_articles.append({'hc': article['hc'], 'id': article['source_id']})
 
     print('\n---TEMPLATE START---')
     print('\nLocalized docs published {}\n'.format(date))
@@ -269,7 +253,7 @@ def print_publish_email(handoff_name):
     print(('https://docs.google.com/a/zendesk.com/spreadsheets/'
            'd/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit?usp=sharing'))
     print('\nArticles:\n')
-    for article in manifest:
-        print('{} - {}'.format(article['hc'], article['article'][:-5]))
+    for article in published_articles:
+        print('{} - {}'.format(article['hc'].capitalize(), article['id']))
     print('\nThanks')
     print('\n---TEMPLATE END---\n')

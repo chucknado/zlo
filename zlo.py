@@ -18,7 +18,6 @@ def create(arguments):
     handoff = ho.download_articles(download_list, arguments.no_images)
     ho.write_articles(handoff, handoff_path)
     ho.download_images(handoff, handoff_path)
-    ho.write_manifest(handoff, handoff_path)
     ho.print_handoff_email(arguments.handoff_name)
     print('\nProcess done\n')
 
@@ -38,7 +37,7 @@ def publish(arguments):
     ho.relink_articles(deliverable)
     ho.upload_images(deliverable)
     ho.upload_articles(deliverable)
-    ho.print_publish_email(arguments.handoff_name)
+    ho.print_publish_email(deliverable, arguments.handoff_name)
     print('\nProcess done\n')
 
 

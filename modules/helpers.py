@@ -8,38 +8,6 @@ from bs4 import BeautifulSoup, Comment
 from modules.api import get_resource_list
 
 
-def combine_latest_registries_tmp():
-    locales = ['de', 'es', 'fr', 'ja', 'pt-br']
-    localized_content = {'de': {'articles': [], 'images': []},
-                         'es': {'articles': [], 'images': []},
-                         'fr': {'articles': [], 'images': []},
-                         'ja': {'articles': [], 'images': []},
-                         'pt-br': {'articles': [], 'images': []}}
-    zep_root = Path('/Users/cnadeau/production/zep/cache/')
-    folders = ['bime', 'chat', 'explore', 'help', 'support']
-    for folder in folders:
-        path = zep_root / folder / 'localized_articles.json'
-        with path.open() as f:
-            articles = json.load(f)
-        for locale in locales:
-            localized_content[locale]['articles'].extend(articles[locale])
-
-        path = zep_root / folder / 'localized_images.json'
-        with path.open() as f:
-            images = json.load(f)
-        for locale in locales:
-            localized_content[locale]['images'].extend(images[locale])
-
-    # remove duplicates
-    for locale in locales:
-        localized_content[locale]['articles'] = list(set(localized_content[locale]['articles']))
-        localized_content[locale]['images'] = list(set(localized_content[locale]['images']))
-
-    file = get_path_setting('data') / 'localized_content.json'
-    with file.open(mode='w') as f:
-        json.dump(localized_content, f, sort_keys=True, indent=2)
-
-
 def get_path_setting(name=''):
     """
     Gets a path specified in the Files section of the settings.ini file.
