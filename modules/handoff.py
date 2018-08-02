@@ -241,10 +241,11 @@ def print_publish_email(deliverable, handoff_name):
     utc = arrow.utcnow()
     local = utc.to('US/Pacific')
     date = local.format('YYYY-MM-DD')
-    published_articles = []
+    published_articles = ''
     for article in deliverable['articles']:
-        if article['locale'] == 'fr':
-            published_articles.append({'hc': article['hc'], 'id': article['source_id']})
+        if str(article['source_id']) in published_articles:
+            continue
+        published_articles += '{} - {}\n'.format(article['hc'].capitalize(), article['source_id'])
 
     print('\n---TEMPLATE START---')
     print('\nLocalized docs published {}\n'.format(date))
@@ -253,7 +254,6 @@ def print_publish_email(deliverable, handoff_name):
     print(('https://docs.google.com/a/zendesk.com/spreadsheets/'
            'd/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit?usp=sharing'))
     print('\nArticles:\n')
-    for article in published_articles:
-        print('{} - {}'.format(article['hc'].capitalize(), article['id']))
-    print('\nThanks')
+    print(published_articles)
+    print('Thanks')
     print('\n---TEMPLATE END---\n')
