@@ -1,3 +1,4 @@
+import yaml
 import re
 from urllib.parse import urlparse
 
@@ -7,18 +8,59 @@ import modules.api as api
 import modules.aws as aws
 
 
-def download_articles(article_hc_map, en_image_articles):
+def get_download_list():
+    """
+    Reads the handoff's loader file and looks up loader ids in the articles database to create an id:hc map.
+    Exits if any loader article is not in the database
+    :return: Dict of article ids and hc subdomains
+    """
+    articles = {}
+    download_list = {}
+    missing_list = []
+
+    loader_path = helpers.get_path_setting('loader')
+    with loader_path.open() as f:
+        loader = f.read().splitlines()
+    articles_db = helpers.get_path_setting('articles_db')
+    with articles_db.open(mode='r') as f:
+        articles_db = yaml.load(f)
+
+    for article in articles_db:
+        articles[article['id']] = article['hc']
+
+    for article_id in loader:
+        article_id = int(article_id)
+        if article_id in articles:
+            download_list[article_id] = articles[article_id]     # assign id:hc value
+        else:
+            missing_list.append(article_id)
+
+    if len(missing_list) == 0:
+        return download_list
+    else:
+        if len(missing_list) == 1:
+            print('The following article is missing from the articles.yml file and should be added:')
+            print(f'- {missing_list[0]}')
+        else:
+            print('The following articles are missing from the articles.yml file and should be added:')
+            for article in missing_list:
+                print(f'- {article}')
+        print('\nExiting.')
+        exit()
+
+
+def download_articles(download_list, en_image_articles):
     """
     Downloads each article from the specified Help Center, converts the HTML into a Beautiful Soup tree, and stores it
     in a dictionary with necessary data for creating the handoff.
-    :param article_hc_map: Dictionary of article ids and hc subdomains. Example {id: 123, hc: 'support'}
+    :param download_list: Dictionary of article ids and hc subdomains. Example {234: 'support', 567: 'support'}
     :param en_image_articles: List of ids of articles with images to exclude from the handoff
     :return: Dictionary of articles. Each object consists of an article id, hc, tree, and S3 image names
     """
     print('\nDownloading articles from Help Center')
     handoff = []
-    for article in article_hc_map:
-        hc = article_hc_map[article]
+    for article in download_list:
+        hc = download_list[article]
         root = f'https://{hc}.zendesk.com/api/v2/help_center'
         url = root + '/articles/{}.json'.format(article)
         print(f'- {hc} -> {article}')
@@ -30,13 +72,14 @@ def download_articles(article_hc_map, en_image_articles):
         if tree is None:
             continue
 
-        if en_image_articles and article in en_image_articles:
+        # if en_image_articles and article in en_image_articles:
+        if article in en_image_articles:
             images = []
         else:
             images = helpers.get_article_images(tree)
 
         handoff.append({'id': article,
-                        'hc': article_hc_map[article],
+                        'hc': download_list[article],
                         'tree': tree,
                         'images': images})
     return handoff

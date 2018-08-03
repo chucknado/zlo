@@ -1,4 +1,3 @@
-import yaml
 import json
 import configparser
 from shutil import copyfile
@@ -43,37 +42,6 @@ def get_aws_setting(name=''):
         print(f'\'{name}\' is not a valid argument for get_aws_path(). Exiting.')
         exit()
     return config['AWS'][name]
-
-
-def get_download_list():
-    """
-    Reads the handoff's loader file and looks up loader ids in the articles database to create an id:hc map.
-    Exits if any loader article is not in the database
-    :return: Dict of article ids and hc subdomains
-    """
-    download_list = {}
-    loader_path = get_path_setting('loader')
-    with loader_path.open() as f:
-        loader = f.read().splitlines()
-    articles_db = get_path_setting('articles_db')
-    with articles_db.open(mode='r') as f:
-        articles_db = yaml.load(f)
-    for article in articles_db:
-        if str(article['id']) in loader:
-            download_list[article['id']] = article['hc']
-            loader.remove(str(article['id']))
-            if len(loader) == 0:
-                return download_list
-
-    if len(loader) > 0:
-        if len(loader) == 1:
-            print('The following article is missing from the articles.yml file: {}'.format(loader[0]))
-        else:
-            print('The following articles are missing from the articles.yml file:')
-            for article in loader:
-                print(f'  - {article}')
-        print('Exiting.')
-        exit()
 
 
 def get_image_skip_list():
