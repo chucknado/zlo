@@ -3,6 +3,5 @@
 .idea/inspectionProfiles/
 __pycache__/
 .DS_Store
-.idea/workspace.xml
-modules/__pycache__/helpers.cpython-36.pyc
-.idea/workspace.xml
+
+run.py

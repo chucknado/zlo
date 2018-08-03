@@ -1,7 +1,7 @@
 import argparse
 
 import modules.handoff as ho
-from modules.helpers import get_path_setting, get_download_list
+from modules.helpers import get_path_setting
 
 
 def create(arguments):
@@ -14,7 +14,7 @@ def create(arguments):
     if handoff_path.exists():
         print('A handoff with that name already exists in the handoffs folder. Exiting.')
         exit()
-    download_list = get_download_list()
+    download_list = ho.get_download_list()
     handoff = ho.download_articles(download_list, arguments.no_images)
     ho.write_articles(handoff, handoff_path)
     ho.download_images(handoff, handoff_path)
@@ -32,7 +32,8 @@ def publish(arguments):
     if not delivery_path.exists():
         print('Folder does not exist: {}. Exiting.'.format(delivery_path))
         exit()
-    deliverable = ho.get_deliverable(delivery_path)
+    deferrals = arguments.defer
+    deliverable = ho.get_deliverable(delivery_path, deferrals)
     ho.register_new_localized_content(deliverable)
     ho.relink_articles(deliverable)
     ho.upload_images(deliverable)
@@ -52,9 +53,11 @@ create_parser.add_argument('--no_images', nargs='*', type=int,
                            help='ids of articles that use default language images in loc versions')
 create_parser.set_defaults(func=create)
 
-# python3 zlo.py publish {handoff_name}
+# python3 zlo.py publish {handoff_name} --defer {id id ...}
 publish_parser = subparsers.add_parser('publish')
 publish_parser.add_argument('handoff_name', help='handoff name, usually yyyy-mm-dd')
+publish_parser.add_argument('--defer', nargs='*', type=int,
+                            help='ids of articles to defer until later')
 publish_parser.set_defaults(func=publish)
 
 if __name__ == '__main__':      # do NOT comment out - required to call functions
