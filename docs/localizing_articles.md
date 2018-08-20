@@ -2,13 +2,14 @@
 
 This article describes how to use the Zendesk localization tools (ZLO) to prepare localization handoffs and publish the localized articles and images returned from the vendor.
 
-For installation instructions, see [Setting up the Zendesk production tools](https://github.com/chucknado/zep/blob/master/docs/setup.md).
+For set up instructions, see the project's [README](https://github.com/chucknado/zlo/blob/master/README.md).
 
 Workflow for creating a handoff:
 
 1. [Update the article database](#update_db)
 2. [Create the handoff](#create_handoff)
 3. [Hand off the files](#handoff_files)
+4. [Update the article map](#update_map) (optional)
 
 Workflow for publishing a handoff:
 
@@ -25,66 +26,38 @@ source: repo/zlo/docs/localizing_articles.md
 
 <h3 id="update_db">Update the article database</h3>
 
-1. Review the handoff articles from the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0) in Google Docs.
+**Note**: This will eventually be replaced with a sqlite database that writers can update from a web application.
 
-2. Open your **articles.yml** file in a text editor. See [Setting up](#) in the README.MD file. 
+1. Review the articles in the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0) in Google Sheets.
 
-3. Add the articles in the handoff spreadsheet to the **articles.yml** file. If the file is already in **articles.yml**, you can skip it.
-
-	At minimum, specify the Help Center subdomain and the article id. Example:
-
-	```
-    - hc: support
-      id: 203662116
-    - hc: support
-      id: 203661586
-	```
-
-	Though not necessary for loc handoffs, you can specify other properties for each article. For example, the Zendesk Docs team includes the name of each DITA-sourced article to map it to its corresponding Help Center article. 
-
-	```
-    - dita: zug_placeholders
-      hc: support
-      id: 203662116
-    - dita: zug_markdown
-      hc: support
-      id: 203661586
-	```
-
-	Make sure the article id is unique in the yml file.
+	This tool expects the following 9 worksheet columns, in order:
+	- article title
+	- article id so the tool knows what to download (required)
+	- article id for upload, if different from the download id. Otherwise, leave blank. Example: An article in a drafts section can be handed off to loc but the content will later be pasted into an existing article. When the localized articles come back, they need to be uploaded using the existing article id, not the draft article id 
+	- Help Center subdomain, such as "chat" or "explore". The tool assumes "support" as the default subdomain. You can change the default in the `load_handoff_data()` function in the **handoff.py** file
+	- DITA file name if new article. Used by the Zendesk Docs team, but is optional. A column must exist or you must adjust the row index numbers in the `load_handoff_data()` function
+	- whether the article's images should remain in the default language. Indicate yes or leave blank
+	- whether it's ok to bump the article to the next handoff. Indicate yes or leave blank. Used to keep the size of handoffs manageable for the translators
+	- writer's name or initials, if any questions about the article come up
+	- comments 
 	
-	After a while, **articles.yml** will list most of your articles and this step will be much quicker. You'd only add articles that were created since the last handoff.
+	</br>Example:
+	
+	![Example sheet](https://github.com/chucknado/zlo/blob/master/docs/loc_handoffs_sheet_example.png)
 
-4. Save the file.
+2. Copy and paste the handoff data from the Google sheet into a new sheet without the column headings, then download the sheet (**File** > **Download**) as a CSV file.
 
-Rules:
+3. Rename the downloaded file **_loader.csv** and move it to the **/localization/data** folder.
 
-* The `hc` and `id` keys are required. All other keys are optional
-* Indent lines as shown (it matters in yml)
-* No tabs
-* No EOL commas or quotation marks around strings
-* No duplicate ids
-* One yml item per article (indicated by the hyphen)
+**Tip**: You can also paste the handoff data into a new Excel sheet, then save the file as a CSV file named **_loader.csv** in the **/localization/data** folder.
 
 
 <h3 id="create_handoff">Create the handoff</h3>
 
-1. Get the list of article ids from the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0) in Google Docs and add their ids as a column in the **/handoffs/\_loader.txt** file. Each id should be on one line with no other characters. Example:
-
-	**\_loader.txt**
-	```
-	207323377
-	213170757
-	212533138
-	...
-	```
-
-	**Caution**: Don't leave a blank line at the end of the list.
-
-3. In the CLI, navigate to the **zlo** folder and run the following command:
+1. In the CLI, navigate to the **zlo** folder and run the following command:
 
 	```bash
-	$ python3 zlo.py create {handoff_name} --no_images {id id ...}
+	$ python3 zlo.py create {handoff_name}
 	```
 
 	Example:
@@ -93,15 +66,9 @@ Rules:
 	$ python3 zlo.py create 2018-12-24
 	```
 
-	Specify the `no_images` argument if some articles have been flagged to use English images in the localized versions of the article. Specify the article ids to exclude. Example:
+2. Manually add any vector image files (.psd, .ai) to the appropriate **images** folder in the handoff. Example: Images with callouts in text layers.
 
-	```bash
-	$ python3 zlo.py create 2018-12-24 --no_images 203660036 203663816
-	```
-
-4. Manually add any vector image files (.psd, .ai) to the appropriate **images** folder in the handoff. Example: Images with callouts in text layers.
-
-5. Review the images for any that don't show a localized UI. Remove any you find and add their filenames to the **production/localization/data/image\_skip\_list.txt** file.
+3. Review the images for any that don't show a localized UI. Remove any you find and add their filenames to the **production/localization/data/image\_skip\_list.txt** file.
 
 	Images in the skip list are ignored when creating handoffs.
 
@@ -117,13 +84,48 @@ It also downloads the article images from Amazon S3. It skips the following imag
 
 <h3 id="handoff_files">Hand off the files</h3>
 
-The article and image files need to be zipped and uploaded to the vendor's FTP server.
-
 1. Zip the handoff folder and upload it to the vendor FTP server.
 
 2. Notify the vendor that the handoff is up.
 
-	The `print_handoff_email()` function in the **handoff.py** file contains an email template that you can modify for this purpose.
+	The `create` command prints an email template that you can modify for your purpose.
+
+
+<h3 id="update_map">Update the article map (optional)</h3>
+
+To do periodic mass updates of our content, we maintain a map of article ids and their corresponding DITA filenames. When we transform articles from DITA to HTML, the tool produces files named **{filename}.html**, such as **zug\_tags.html**. There's no information about the article's Help Center id. Without the map, we wouldn't know where to put the articles on Help Center.
+
+This step is optional. You don't need the information if you don't publish transformed DITA files.
+
+1. Get a list of the new articles from the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0). Ignore the updated articles.
+
+2. Navigate to and open the following file on Team Drives in a text editor:
+
+	`Documentation/Zendesk User Guides/All products/production/articles.yml`
+
+3. Enter the following information for each article: DITA filename without the file extension, host Help Center, and article id. Example:
+
+	```
+    - dita: zug_placeholders
+      hc: support
+      id: 203662116
+    - dita: zug_markdown
+      hc: support
+      id: 203661586
+    ...
+	```
+
+	Make sure the article id is unique in the yml file. Also, don't include the **.dita** extension.
+
+3. Save the file.
+
+Rules:
+
+* Indent lines as shown (it matters in yml)
+* No EOL commas or quotation marks around strings
+* No duplicate ids
+* One yml item per article (indicated by the hyphen)
+* No **.dita** file extension
 
 
 <h3 id="prep_deliverable">Prep the deliverable</h3>
@@ -175,10 +177,22 @@ After the localized content comes back from the vendor, place the files in the i
 	```bash
 	$ python3 zlo.py publish 2018-08-23
 	```
+	
+	If you want to exclude certain articles from the push, specify the article upload ids with the `defer` option. Use this option when documented features aren't GA yet. Example:
+	
+	```bash
+	python3 zlo.py publish 2018-08-08-test --defer 115003676907 115005204787
+	```
+
+	If you want to publish only a subset of articles from the deliverable, specify the article upload ids with the `subset` option. Use this option if deferred articles in a previous push are ready to go live. Example:
+	
+	```bash
+	python3 zlo.py publish 2018-08-08-test --subset 115003676907 115005204787
+	```
 
 2. Notify the team that translated articles have been published.
 
-	The `print_publish_email()` function in the **handoff.py** file contains an email template that you can modify for this purpose.
+	The `publish` command prints an email template that you can modify for your purpose.
 
 
 

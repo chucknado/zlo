@@ -1,6 +1,5 @@
 import json
 import configparser
-from shutil import copyfile
 from pathlib import Path
 
 from bs4 import BeautifulSoup, Comment
@@ -49,6 +48,16 @@ def get_image_skip_list():
     with skip_list_path.open() as f:
         skip_list = f.read().splitlines()
     return skip_list
+
+
+def write_json(file, data):
+    with file.open(mode='w', encoding='utf-8') as f:
+        return json.dump(data, f, sort_keys=True, indent=2)
+
+
+def read_json(file):
+    with file.open(mode='r') as f:
+        return json.load(f)
 
 
 def create_tree_from_api(response):
@@ -106,18 +115,19 @@ def get_article_images(tree):
     return article_images
 
 
-def get_localized_content_registry():
-    file = get_path_setting('data') / 'localized_content.json'
-    with file.open(mode='r') as f:
-        return json.load(f)
-
-
-def write_localized_content_registry(localized_content):
-    file = get_path_setting('data') / 'localized_content.json'
-    backup_file = get_path_setting('data') / 'localized_content_backup.json'
-    copyfile(file, backup_file)
-    with file.open(mode='w', encoding='utf-8') as f:
-        return json.dump(localized_content, f, sort_keys=True, indent=2)
+def get_article_image_names(handoff_name, handoff_manifest, article_list):
+    handoff_path = get_path_setting('handoffs')
+    image_names = []
+    manifest_articles = []
+    for article in handoff_manifest:
+        if article['id'] in article_list:
+            manifest_articles.append(article)
+    for article in manifest_articles:
+        article_path = handoff_path / handoff_name / article['hc'] / 'articles' / '{}.html'.format(article['id'])
+        tree = create_tree_from_file(article_path)
+        images = get_article_images(tree)
+        image_names.extend(images)
+    return image_names
 
 
 def get_http_method(article_id, article_locale, hc):

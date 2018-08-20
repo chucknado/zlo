@@ -1,6 +1,7 @@
-import yaml
 import re
+import csv
 from urllib.parse import urlparse
+from shutil import copyfile
 
 import arrow
 import modules.helpers as helpers
@@ -8,78 +9,84 @@ import modules.api as api
 import modules.aws as aws
 
 
-def get_download_list():
+def load_handoff_data(handoff_name):
     """
-    Reads the handoff's loader file and looks up loader ids in the articles database to create an id:hc map.
-    Exits if any loader article is not in the database
-    :return: Dict of article ids and hc subdomains
+    Reads the handoff's _loader.csv file and updates the handoffs.json file.
+    :param handoff_name: Name of handoff specified on the command line
+    :return:
     """
-    articles = {}
-    download_list = {}
-    missing_list = []
+    handoff = {}
+    articles = []
+    file = helpers.get_path_setting('data') / 'handoffs.json'
+    handoffs = helpers.read_json(file)
+    loader_file = helpers.get_path_setting('loader')
+    with loader_file.open() as f:
+        reader = csv.reader(f)
+        for row in reader:
+            article = {'title': row[0],
+                       'id': int(row[1]) if row[1] else None,
+                       'deferred_id': int(row[2]) if row[2] else None,
+                       'hc': row[3].lower() if row[3] else 'support',
+                       'dita_name': row[4] if row[4] else None,
+                       'en_images': True if row[5] else False,
+                       'bump_ok': True if row[6] else False,
+                       'writer': row[7],
+                       'comments': row[8]}
+            articles.append(article)
 
-    loader_path = helpers.get_path_setting('loader')
-    with loader_path.open() as f:
-        loader = f.read().splitlines()
-    articles_db = helpers.get_path_setting('articles_db')
-    with articles_db.open(mode='r') as f:
-        articles_db = yaml.load(f)
-
-    for article in articles_db:
-        articles[article['id']] = article['hc']
-
-    for article_id in loader:
-        article_id = int(article_id)
-        if article_id in articles:
-            download_list[article_id] = articles[article_id]     # assign id:hc value
-        else:
-            missing_list.append(article_id)
-
-    if len(missing_list) == 0:
-        return download_list
-    else:
-        if len(missing_list) == 1:
-            print('The following article is missing from the articles.yml file and should be added:')
-            print(f'- {missing_list[0]}')
-        else:
-            print('The following articles are missing from the articles.yml file and should be added:')
-            for article in missing_list:
-                print(f'- {article}')
-        print('\nExiting.')
-        exit()
+    handoff['articles'] = articles
+    handoff['status'] = 'in progress'
+    handoffs[handoff_name] = handoff
+    helpers.write_json(file, handoffs)
+    print('Successfully loaded the handoff data from _loader.csv to handoffs.json\n')
 
 
-def download_articles(download_list, en_image_articles):
+def get_handoff_manifest(handoff_name):
+    """
+    Gets the properties of the articles in the specified handoff from the handoffs database.
+    :param handoff_name: Name of handoff specified on the command line
+    :return: List articles and their properties
+    """
+    file = helpers.get_path_setting('data') / 'handoffs.json'
+    handoffs = helpers.read_json(file)
+    handoff_manifest = handoffs[handoff_name]['articles']
+    return handoff_manifest
+
+
+def download_articles(handoff_manifest):
     """
     Downloads each article from the specified Help Center, converts the HTML into a Beautiful Soup tree, and stores it
     in a dictionary with necessary data for creating the handoff.
-    :param download_list: Dictionary of article ids and hc subdomains. Example {234: 'support', 567: 'support'}
-    :param en_image_articles: List of ids of articles with images to exclude from the handoff
+    :param handoff_manifest: List of articles in the handoff and their properties
     :return: Dictionary of articles. Each object consists of an article id, hc, tree, and S3 image names
     """
     print('\nDownloading articles from Help Center')
+
+    download_list = {}
+    for article in handoff_manifest:
+        download_list[article['id']] = article['hc']    # assign id:hc value
+
     handoff = []
-    for article in download_list:
-        hc = download_list[article]
+    for article in handoff_manifest:
+        hc = article['hc']
         root = f'https://{hc}.zendesk.com/api/v2/help_center'
-        url = root + '/articles/{}.json'.format(article)
-        print(f'- {hc} -> {article}')
+        url = root + '/articles/{}.json'.format(article['id'])
+        print('- {} -> {}'.format(hc, article['id']))
         response = api.get_resource(url)
         if response is False:
-            print('Double-check the article id in loc spreadsheet and the master articles file.')
+            print('\nDouble-check the article id in loc spreadsheet.\n')
             exit()
         tree = helpers.create_tree_from_api(response)
         if tree is None:
             continue
 
-        # if en_image_articles and article in en_image_articles:
-        if article in en_image_articles:
+        if article['en_images']:
             images = []
         else:
             images = helpers.get_article_images(tree)
 
-        handoff.append({'id': article,
-                        'hc': download_list[article],
+        handoff.append({'id': article['id'] if article['deferred_id'] is None else article['deferred_id'],
+                        'hc': hc,
                         'tree': tree,
                         'images': images})
     return handoff
@@ -173,48 +180,77 @@ def print_handoff_email(handoff_name):
     print('\n---TEMPLATE END---\n')
 
 
-def get_deliverable(delivery_path):
+def get_deliverable(delivery_path, defer=None, subset=None):
+    if defer and subset:
+        print('\nError. Can only specify defer or subset arguments, not both. Exiting.\n')
+        exit()
+
     print('\nGetting the deliverable...')
     deliverable = {'images': [], 'articles': []}
+    image_names = []
+    if defer or subset:
+        handoff_name = delivery_path.parts[-2]
+        handoff_manifest = get_handoff_manifest(handoff_name)
+        article_list = defer if defer else subset
+        image_names = helpers.get_article_image_names(handoff_name, handoff_manifest, article_list)
+
     image_paths = sorted(delivery_path.glob('**/images/*.*'))
     for image_path in image_paths:
+        name = image_path.name
+        if defer and name in image_names:
+            continue
+        if subset and name not in image_names:
+            continue
         parts = image_path.parts
         locale = parts[-4].lower()
         if locale == 'pt-br':
-            key = 'docs/pt/{}'.format(image_path.name)
+            key = 'docs/pt/{}'.format(name)
         else:
-            key = 'docs/{}/{}'.format(locale, image_path.name)
-        deliverable['images'].append({'locale': locale, 'name': image_path.name, 'key': key, 'path': image_path})
+            key = 'docs/{}/{}'.format(locale, name)
+        deliverable['images'].append({'locale': locale, 'name': name, 'key': key, 'path': image_path})
+
     article_paths = sorted(delivery_path.glob('**/*.html'))
     for article_path in article_paths:
+        source_id = article_path.name[:-5]
+        if defer and int(source_id) in defer:
+            continue
+        if subset and int(source_id) not in subset:
+            continue
+
         tree = helpers.create_tree_from_file(article_path)
         if tree is None:
             continue
         parts = article_path.parts
         deliverable['articles'].append({'locale': parts[-4].lower(), 'hc': parts[-3],
-                                        'source_id': article_path.name[:-5], 'tree': tree})
+                                        'source_id': source_id, 'tree': tree})
+
     return deliverable
 
 
 def register_new_localized_content(deliverable):
     print('\nRegistering new localized content...')
-    localized_content_registry = helpers.get_localized_content_registry()
+    file = helpers.get_path_setting('data') / 'localized_content.json'
+    localized_content = helpers.read_json(file)
     is_updated = False
     for image in deliverable['images']:
-        if image['name'] not in localized_content_registry[image['locale']]['images']:
-            localized_content_registry[image['locale']]['images'].append(image['name'])
+        if image['name'] not in localized_content[image['locale']]['images']:
+            localized_content[image['locale']]['images'].append(image['name'])
             is_updated = True
     for article in deliverable['articles']:
-        if int(article['source_id']) not in localized_content_registry[article['locale']]['articles']:
-            localized_content_registry[article['locale']]['articles'].append(int(article['source_id']))
+        if int(article['source_id']) not in localized_content[article['locale']]['articles']:
+            localized_content[article['locale']]['articles'].append(int(article['source_id']))
             is_updated = True
     if is_updated:
-        helpers.write_localized_content_registry(localized_content_registry)
+        file = helpers.get_path_setting('data') / 'localized_content.json'
+        backup_file = helpers.get_path_setting('data') / 'localized_content_backup.json'
+        copyfile(file, backup_file)
+        helpers.write_json(file, localized_content)
 
 
 def relink_articles(deliverable):
     print('\nUpdating article links...')
-    registry = helpers.get_localized_content_registry()
+    file = helpers.get_path_setting('data') / 'localized_content.json'
+    localized_content = helpers.read_json(file)
     for article in deliverable['articles']:
         tree = article['tree']
         locale = article['locale']
@@ -227,14 +263,14 @@ def relink_articles(deliverable):
             article_id = parsed_link.path.split('/articles/')[1]        # remove the url path prefix
             article_id = article_id.split('-')[0]                       # remove dasherized title suffix
             article_id = re.sub('[^0-9]', '', article_id)               # remove any remaining non-numeric characters
-            if int(article_id) in registry[locale]['articles']:
+            if int(article_id) in localized_content[locale]['articles']:
                 link['href'] = re.sub(r'hc/en-us', 'hc/{}'.format(locale), link['href'])
                 # print(' - updated xref - {}'.format(link['href']))
 
         imgs = tree.find_all('img', src=re.compile('/docs/en/'))
         for link in imgs:
             image_name = link['src'].split('/docs/en/')[1]
-            if image_name in registry[locale]['images']:
+            if image_name in localized_content[locale]['images']:
                 if locale == 'pt-br':
                     link['src'] = re.sub(r'docs/en', 'docs/{}'.format('pt'), link['src'])
                 else:
