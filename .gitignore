@@ -1,12 +1,11 @@
 
+*.pyc
 *.xml
 .idea/inspectionProfiles/
+.idea/workspace.xml
+.idea/misc.xml
+
 __pycache__/
 .DS_Store
 
 run.py
-.idea/workspace.xml
-
-.idea/misc.xml
-.idea/misc.xml
-.idea/workspace.xml
