@@ -44,7 +44,7 @@ def get_aws_setting(name=''):
 
 
 def get_image_skip_list():
-    skip_list_path = get_path_setting('image_skip_list')
+    skip_list_path = get_path_setting('data') / 'image_skip_list.txt'
     with skip_list_path.open() as f:
         skip_list = f.read().splitlines()
     return skip_list

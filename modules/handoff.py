@@ -19,7 +19,7 @@ def load_handoff_data(handoff_name):
     articles = []
     file = helpers.get_path_setting('data') / 'handoffs.json'
     handoffs = helpers.read_json(file)
-    loader_file = helpers.get_path_setting('loader')
+    loader_file = helpers.get_path_setting('data') / '_loader.csv'
     with loader_file.open() as f:
         reader = csv.reader(f)
         for row in reader:
@@ -27,18 +27,17 @@ def load_handoff_data(handoff_name):
                        'id': int(row[1]) if row[1] else None,
                        'deferred_id': int(row[2]) if row[2] else None,
                        'hc': row[3].lower() if row[3] else 'support',
-                       'dita_name': row[4] if row[4] else None,
-                       'en_images': True if row[5] else False,
-                       'bump_ok': True if row[6] else False,
-                       'writer': row[7],
-                       'comments': row[8]}
+                       'en_images': True if row[4] else False,
+                       'bump_ok': True if row[5] else False,
+                       'writer': row[6],
+                       'comments': row[7]}
             articles.append(article)
 
     handoff['articles'] = articles
     handoff['status'] = 'in progress'
     handoffs[handoff_name] = handoff
     helpers.write_json(file, handoffs)
-    print('Successfully loaded the handoff data from _loader.csv to handoffs.json\n')
+    print('\nSuccessfully loaded the handoff data from _loader.csv to handoffs.json\n')
 
 
 def get_handoff_manifest(handoff_name):
@@ -251,6 +250,7 @@ def relink_articles(deliverable):
     print('\nUpdating article links...')
     file = helpers.get_path_setting('data') / 'localized_content.json'
     localized_content = helpers.read_json(file)
+
     for article in deliverable['articles']:
         tree = article['tree']
         locale = article['locale']
@@ -263,6 +263,14 @@ def relink_articles(deliverable):
             article_id = parsed_link.path.split('/articles/')[1]        # remove the url path prefix
             article_id = article_id.split('-')[0]                       # remove dasherized title suffix
             article_id = re.sub('[^0-9]', '', article_id)               # remove any remaining non-numeric characters
+
+            if not article_id.isdigit():                                # check for bad link
+                print('\nThe following article contains a HC link that does not use an id:')
+                print('- {} - {}'.format(article['source_id'], article['title']))
+                print('- problem link: {}'.format(parsed_link.path))
+                print('Exiting.\n')
+                exit()
+
             if int(article_id) in localized_content[locale]['articles']:
                 link['href'] = re.sub(r'hc/en-us', 'hc/{}'.format(locale), link['href'])
                 # print(' - updated xref - {}'.format(link['href']))

@@ -9,13 +9,11 @@ Workflow for creating a handoff:
 1. [Update the article database](#update_db)
 2. [Create the handoff](#create_handoff)
 3. [Hand off the files](#handoff_files)
-4. [Update the article map](#update_map) (optional)
 
 Workflow for publishing a handoff:
 
 1. [Prep the deliverable](#prep_loc_content)
 2. [Publish the deliverable](#publish)
-
 
 <!--
 title: Getting articles localized
@@ -30,12 +28,11 @@ source: repo/zlo/docs/localizing_articles.md
 
 1. Review the articles in the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0) in Google Sheets.
 
-	This tool expects the following 9 worksheet columns, in order:
+	This tool expects the following 8 worksheet columns, in order:
 	- article title
 	- article id so the tool knows what to download (required)
 	- article id for upload, if different from the download id. Otherwise, leave blank. Example: An article in a drafts section can be handed off to loc but the content will later be pasted into an existing article. When the localized articles come back, they need to be uploaded using the existing article id, not the draft article id 
 	- Help Center subdomain, such as "chat" or "explore". The tool assumes "support" as the default subdomain. You can change the default in the `load_handoff_data()` function in the **handoff.py** file
-	- DITA file name if new article. Used by the Zendesk Docs team, but is optional. A column must exist or you must adjust the row index numbers in the `load_handoff_data()` function
 	- whether the article's images should remain in the default language. Indicate yes or leave blank
 	- whether it's ok to bump the article to the next handoff. Indicate yes or leave blank. Used to keep the size of handoffs manageable for the translators
 	- writer's name or initials, if any questions about the article come up
@@ -45,11 +42,26 @@ source: repo/zlo/docs/localizing_articles.md
 	
 	![Example sheet](https://github.com/chucknado/zlo/blob/master/docs/loc_handoffs_sheet_example.png)
 
-2. Copy and paste the handoff data from the Google sheet into a new sheet without the column headings, then download the sheet (**File** > **Download**) as a CSV file.
+2. Copy and paste the handoff data from the Google sheet into a new sheet without the column headings, [cn- delete the dita column (col E),] then download the sheet (**File** > **Download**) as a CSV file.
 
 3. Rename the downloaded file **_loader.csv** and move it to the **/localization/data** folder.
 
 **Tip**: You can also paste the handoff data into a new Excel sheet, then save the file as a CSV file named **_loader.csv** in the **/localization/data** folder.
+
+
+<h3 id="update_db">Update the article database</h3>
+
+- In the CLI, navigate to the **zlo** folder and run the following command:
+
+	```bash
+	$ python3 zlo.py load {handoff_name}
+	```
+
+	Example:
+
+	```bash
+	$ python3 zlo.py load 2018-12-24
+	```
 
 
 <h3 id="create_handoff">Create the handoff</h3>
@@ -91,42 +103,6 @@ It also downloads the article images from Amazon S3. It skips the following imag
 	The `create` command prints an email template that you can modify for your purpose.
 
 
-<h3 id="update_map">Update the article map (optional)</h3>
-
-To do periodic mass updates of our content, we maintain a map of article ids and their corresponding DITA filenames. When we transform articles from DITA to HTML, the tool produces files named **{filename}.html**, such as **zug\_tags.html**. There's no information about the article's Help Center id. Without the map, we wouldn't know where to put the articles on Help Center.
-
-This step is optional. You don't need the information if you don't publish transformed DITA files.
-
-1. Get a list of the new articles from the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0). Ignore the updated articles.
-
-2. Navigate to and open the following file on Team Drives in a text editor:
-
-	`Documentation/Zendesk User Guides/All products/production/articles.yml`
-
-3. Enter the following information for each article: DITA filename without the file extension, host Help Center, and article id. Example:
-
-	```
-    - dita: zug_placeholders
-      hc: support
-      id: 203662116
-    - dita: zug_markdown
-      hc: support
-      id: 203661586
-    ...
-	```
-
-	Make sure the article id is unique in the yml file. Also, don't include the **.dita** extension.
-
-3. Save the file.
-
-Rules:
-
-* Indent lines as shown (it matters in yml)
-* No EOL commas or quotation marks around strings
-* No duplicate ids
-* One yml item per article (indicated by the hyphen)
-* No **.dita** file extension
-
 
 <h3 id="prep_deliverable">Prep the deliverable</h3>
 
@@ -166,10 +142,12 @@ After the localized content comes back from the vendor, place the files in the i
 
 **Note**: If publishing to a new section in Help Center, make sure translations of the article's parent section exists (as well as translations of the section's parent category).
 
-1. In the CLI, navigate to the **zlo** folder and run the following command to publish the deliverable:
+1. Check the loc spreadsheet for any articles marked for deferral. Check with writer if the defer status still applies.
+
+2. In the CLI, navigate to the **zlo** folder and run the following command to publish the deliverable:
 
 	```bash
-	python3 zlo.py publish {handoff_name}
+	$ python3 zlo.py publish {handoff_name} -defer {id} {id}
 	```
 	
 	Example:
@@ -178,16 +156,16 @@ After the localized content comes back from the vendor, place the files in the i
 	$ python3 zlo.py publish 2018-08-23
 	```
 	
-	If you want to exclude certain articles from the push, specify the article upload ids with the `defer` option. Use this option when documented features aren't GA yet. Example:
+	If you need to defer certain articles from the push, specify the article upload ids with the `defer` option. Use this option when documented features aren't GA yet. Specify the id in the "ID for upload" column. Example:
 	
 	```bash
-	python3 zlo.py publish 2018-08-08-test --defer 115003676907 115005204787
+	$ python3 zlo.py publish 2018-08-08 --defer 115003676907 115005204787
 	```
 
 	If you want to publish only a subset of articles from the deliverable, specify the article upload ids with the `subset` option. Use this option if deferred articles in a previous push are ready to go live. Example:
 	
 	```bash
-	python3 zlo.py publish 2018-08-08-test --subset 115003676907 115005204787
+	$ python3 zlo.py publish 2018-08-08 --subset 115003676907 115005204787
 	```
 
 2. Notify the team that translated articles have been published.
