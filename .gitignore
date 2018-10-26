@@ -6,4 +6,7 @@ __pycache__/
 
 run.py
 .idea/workspace.xml
-*.pyc
+
+.idea/misc.xml
+.idea/misc.xml
+.idea/workspace.xml
