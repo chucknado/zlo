@@ -1,6 +1,7 @@
 
 *.xml
 *.iml
+.idea/*
 .idea/inspectionProfiles/
 
 __pycache__/
