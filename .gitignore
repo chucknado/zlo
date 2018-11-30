@@ -1,14 +1,10 @@
 
 *.xml
 *.iml
-*.pyc
 .idea/inspectionProfiles/
-.idea/workspace.xml
-.idea/misc.xml
 
 __pycache__/
 .DS_Store
 
-run.py
-*.pyc
-*.xml
+tests.py
+
