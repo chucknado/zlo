@@ -1,16 +1,16 @@
 
 ##  Zendesk loc handoff (ZLO) tools
 
-This tool gets articles from Help Center to hand off to a localization vendor, and publishes the returned localized articles to Help Center.
+Use these tools to prepare localization handoffs and to publish the deliverables returned by the localization vendor. The articles and translations are published to one or more Zendesk Help Centers.
 
-The tool assumes your image files are hosted on Amazon S3, which has an API that lets you download and upload images. You can modify the tool if your images are hosted elsewhere.
+The tool assumes article image files are hosted on Amazon S3. You can modify the tool if your images are hosted elsewhere.
 
 
 ### Requirements
 
 - Python 3.6 or later - https://www.python.org/downloads/
 
-You must also install the following third-party libraries:
+You must also install the following third-party Python libraries:
 
 - Requests - http://docs.python-requests.org/en/master/
 - BeautifulSoup - https://www.crummy.com/software/BeautifulSoup/
@@ -41,4 +41,4 @@ You must also install the following third-party libraries:
 
 ### Terms of use
 
-This project is open source. It's not officially supported by Zendesk. See the license for the terms of use.
+This project is not officially supported by Zendesk. See the license for the terms of use.

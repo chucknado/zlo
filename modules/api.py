@@ -1,6 +1,5 @@
-import os
 import time
-from urllib.parse import urlparse
+from pathlib import Path
 
 import requests
 from modules.auth import get_auth
@@ -10,15 +9,14 @@ def get_resource_list(url, list_name=None, paginate=True):
     """
     Returns a list of HC resources specified by the url basename (such as .../articles.json)
     :param url: A full endpoint url, such as 'https://support.zendesk.com/api/v2/help_center/articles.json'
-    :param list_name: The list name in the response per the docs
-    :param paginate: Whether the endpoint has pagination (i.e., a 'next_page' property). Example: missing translations
+    :param list_name: The list name in the response per the docs. Required if list name not the same as resource name
+    :param paginate: Whether the endpoint has pagination (i.e., a 'next_page' property). Example false: missing translations
     :return: List of resources, or False if the request failed
     """
-    o = urlparse(url)
     if list_name:
         resource = list_name
     else:
-        resource = os.path.splitext(os.path.basename(o.path))[0]    # e.g., 'articles'
+        resource = Path(url).stem
     record_list = {resource: []}
     while url:
         response = requests.get(url, auth=get_auth())
