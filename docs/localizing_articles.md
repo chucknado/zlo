@@ -4,6 +4,10 @@ This article describes how to use the Zendesk localization tools (ZLO) to prepar
 
 For set up instructions, see the project's [README](https://github.com/chucknado/zlo/blob/master/README.md).
 
+To localize specific articles, ask the writers to add the articles to a shared spreadsheet on an ongoing basis.
+
+To localize entire Help Centers or categories, specify the Help Centers and categories in a JSON file. See the [example file](https://github.com/chucknado/zlo/blob/master/docs/_custom_content.json) for the format.
+
 Workflow for creating a handoff:
 
 1. [Update the article database](#update_db)
@@ -26,6 +30,12 @@ source: repo/zlo/docs/localizing_articles.md
 
 **Note**: This will eventually be replaced with a sqlite database that writers can update from a web application.
 
+<h4 id="">Handing off specific articles</h4>
+
+The writers should be adding new or updated articles to a shared spreadsheet on an ongoing basis.
+
+**To update the database with the articles**
+
 1. Review the articles in the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0) in Google Sheets.
 
 	This tool expects the following 8 worksheet columns, in order:
@@ -46,12 +56,10 @@ source: repo/zlo/docs/localizing_articles.md
 
 3. Rename the downloaded file **_loader.csv** and move it to the **/localization/data** folder.
 
-**Tip**: You can also paste the handoff data into a new Excel sheet, then save the file as a CSV file named **_loader.csv** in the **/localization/data** folder.
+    **Tip**: You can also paste the handoff data into a new Excel sheet, then save the file as a CSV file named **_loader.csv** in the **/localization/data** folder.
 
 
-<h3 id="update_db">Update the article database</h3>
-
-- In the CLI, navigate to the **zlo** folder and run the following command:
+4. In the CLI, navigate to the **zlo** folder and run the following command:
 
 	```bash
 	$ python3 zlo.py load {handoff_name}
@@ -61,6 +69,26 @@ source: repo/zlo/docs/localizing_articles.md
 
 	```bash
 	$ python3 zlo.py load 2018-12-24
+	```
+
+<h4 id="">Handing off Help Center categories</h4>
+
+**To update the database with the Help Center categories**
+
+1. Specify the Help Centers and categories in a JSON file. See the [example file](https://github.com/chucknado/zlo/blob/master/docs/_custom_content.json) for the format.
+
+2. Name the JSON file **_custom_loader.json** and save it to the **/localization/data** folder.
+
+3. In the CLI, navigate to the **zlo** folder and run the following command:
+
+	```bash
+	$ python3 zlo.py load {handoff_name} --custom
+	```
+
+	Example:
+
+	```bash
+	$ python3 zlo.py load 2018-12-suite --custom
 	```
 
 

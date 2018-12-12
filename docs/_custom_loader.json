@@ -1,0 +1,21 @@
+{
+  "support": {
+    "categories": [200201826, 204155808, 204155828],
+    "section_skips": ["200624006-Best-practices-and-recipes", "200623816-Integrations",
+                      "200623786-Zendesk-Support-app-for-mobile", "115003437128-Developer-resources",
+                      "200623826-Support-tips", "200623966-Support-tip-drafts",
+                      "200623896-NEW-CONTENT-FOR-REVIEW",
+                      "200758357-Multibrand-migration-for-Hub-Spoke-customers-",
+                      "200673326-Russian-articles"]
+  },
+  "chat": {
+    "categories": [201588438, 202306798],
+    "section_skips": ["202544568-Chat-integrations", "206164867-Zendesk-Chat-for-Android",
+                      "360000039288-Support-tips", "202558558-Best-practices-and-recipes",
+                      "115003438347-Developer-resources"]
+  },
+  "help": {
+    "categories": [115001647548],
+    "section_skips": ["206226967-Training", "360000272207-NEW-CONTENT-FOR-REVIEW"]
+  }
+}

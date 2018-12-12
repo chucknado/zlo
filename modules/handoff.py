@@ -9,35 +9,66 @@ import modules.api as api
 import modules.aws as aws
 
 
-def load_handoff_data(handoff_name):
+def load_handoff_data(handoff_name, custom=False):
     """
     Reads the handoff's _loader.csv file and updates the handoffs.json file.
     :param handoff_name: Name of handoff specified on the command line
+    :param custom: Boolean. If true, use _custom_loader.json.
     :return:
     """
     handoff = {}
     articles = []
     file = helpers.get_path_setting('data') / 'handoffs.json'
     handoffs = helpers.read_json(file)
-    loader_file = helpers.get_path_setting('data') / '_loader.csv'
-    with loader_file.open() as f:
-        reader = csv.reader(f)
-        for row in reader:
-            article = {'title': row[0],
-                       'id': int(row[1]) if row[1] else None,
-                       'deferred_id': int(row[2]) if row[2] else None,
-                       'hc': row[3].lower() if row[3] else 'support',
-                       'en_images': True if row[4] else False,
-                       'bump_ok': True if row[5] else False,
-                       'writer': row[6],
-                       'comments': row[7]}
-            articles.append(article)
+
+    if not custom:
+        loader_file = helpers.get_path_setting('data') / '_loader.csv'
+        with loader_file.open() as f:
+            reader = csv.reader(f)
+            for row in reader:
+                article = {'title': row[0],
+                           'id': int(row[1]) if row[1] else None,
+                           'deferred_id': int(row[2]) if row[2] else None,
+                           'hc': row[3].lower() if row[3] else 'support',
+                           'en_images': True if row[4] else False,
+                           'bump_ok': True if row[5] else False,
+                           'writer': row[6],
+                           'comments': row[7]}
+                articles.append(article)
+
+    if custom:
+        loader_file = helpers.get_path_setting('data') / '_custom_loader.json'
+        help_centers = helpers.read_json(loader_file)
+        for hc in help_centers:
+            hc_section_skips = []
+            if help_centers[hc]['section_skips']:   # get section ids
+                section: str
+                [hc_section_skips.append(int(section.split('-')[0])) for section in help_centers[hc]['section_skips']]
+
+            print(f'\nFetching {hc} articles')
+            root = 'https://{}.zendesk.com/api/v2/help_center'.format(hc)
+            for category in help_centers[hc]['categories']:
+                url = '{}/articles/search.json?category={}'.format(root, category)
+                articles_in_category = api.get_resource_list(url, 'results')
+                for article in articles_in_category:
+                    if article['section_id'] in hc_section_skips:
+                        continue
+                    record = {'title': article['title'],
+                              'id': article['id'],
+                              'deferred_id': None,
+                              'hc': hc,
+                              'en_images': False,
+                              'bump_ok': False,
+                              'writer': article['author_id'],
+                              'comments': 'Custom handoff'}
+                    print('- {}'.format(article['title']))
+                    articles.append(record)
 
     handoff['articles'] = articles
     handoff['status'] = 'in progress'
     handoffs[handoff_name] = handoff
     helpers.write_json(file, handoffs)
-    print('\nSuccessfully loaded the handoff data from _loader.csv to handoffs.json\n')
+    print('\nSuccessfully loaded the handoff data to handoffs.json\n')
 
 
 def get_handoff_manifest(handoff_name):
@@ -130,7 +161,12 @@ def download_images(handoff, handoff_path):
         if not article['images']:   # article contains no images: go to next article
             continue
         for image_name in article['images']:
+
             image_qualifies = True
+
+            if '%20' in image_name:     # image path has a space
+                print(f'- invalid image path: {image_name}')
+                continue
 
             key = key_prefix + image_name
             image = aws.download_image(bucket, key)

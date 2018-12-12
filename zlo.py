@@ -11,7 +11,7 @@ def load(arguments):
     :param arguments: handoff_name (str)
     :return: None
     """
-    ho.load_handoff_data(arguments.handoff_name)
+    ho.load_handoff_data(arguments.handoff_name, arguments.custom)
 
 
 def create(arguments):
@@ -55,9 +55,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--version', action='version', version='1.0.0')
 subparsers = parser.add_subparsers()
 
-# python3 zlo.py load {handoff_name}
+# python3 zlo.py load {handoff_name} --custom
 load_parser = subparsers.add_parser('load')
 load_parser.add_argument('handoff_name', help='handoff name, usually yyyy-mm-dd')
+load_parser.add_argument('--custom', action='store_true', help='Flag for custom data source')
 load_parser.set_defaults(func=load)
 
 # python3 zlo.py create {handoff_name}

@@ -9,3 +9,6 @@ __pycache__/
 
 tests.py
 
+*.pyc
+*.xml
+*.iml
