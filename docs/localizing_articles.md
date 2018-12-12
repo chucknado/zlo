@@ -6,7 +6,7 @@ For set up instructions, see the project's [README](https://github.com/chucknado
 
 To localize specific articles, ask the writers to add the articles to a shared spreadsheet on an ongoing basis.
 
-To localize entire Help Centers or categories, specify the Help Centers and categories in a JSON file. See the [example file](https://github.com/chucknado/zlo/blob/master/docs/_custom_content.json) for the format.
+To localize entire Help Centers or categories, specify the Help Centers and categories in a JSON file. See the [example file](https://github.com/chucknado/zlo/blob/master/docs/_custom_loader.json) for the format.
 
 Workflow for creating a handoff:
 
@@ -34,7 +34,7 @@ source: repo/zlo/docs/localizing_articles.md
 
 The writers should be adding new or updated articles to a shared spreadsheet on an ongoing basis.
 
-**To update the database with the articles**
+**To update the database**
 
 1. Review the articles in the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0) in Google Sheets.
 
@@ -73,9 +73,9 @@ The writers should be adding new or updated articles to a shared spreadsheet on 
 
 <h4 id="">Handing off Help Center categories</h4>
 
-**To update the database with the Help Center categories**
+**To update the database**
 
-1. Specify the Help Centers and categories in a JSON file. See the [example file](https://github.com/chucknado/zlo/blob/master/docs/_custom_content.json) for the format.
+1. Specify the Help Centers and categories in a JSON file. See the [example file](https://github.com/chucknado/zlo/blob/master/docs/_custom_loader.json) for the format.
 
 2. Name the JSON file **_custom_loader.json** and save it to the **/localization/data** folder.
 
