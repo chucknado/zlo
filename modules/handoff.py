@@ -164,7 +164,7 @@ def download_images(handoff, handoff_path):
 
             image_qualifies = True
 
-            if '%20' in image_name:     # image path has a space
+            if '%' in image_name:     # image path has disallowed character
                 print(f'- invalid image path: {image_name}')
                 continue
 
