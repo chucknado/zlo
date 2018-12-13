@@ -12,3 +12,4 @@ tests.py
 *.pyc
 *.xml
 *.iml
+*.xml
