@@ -36,7 +36,7 @@ The writers should be adding new or updated articles to a shared spreadsheet on 
 
 **To update the database**
 
-1. Review the articles in the [loc handoff worksheet](https://docs.google.com/spreadsheets/d/1jldaCDT5iYrUdmzAT1jWwFbYOwGECVVcwK9agHJeGE8/edit#gid=0) in Google Sheets.
+1. Review the articles in the loc handoff worksheet in Google Sheets.
 
 	This tool expects the following 8 worksheet columns, in order:
 	- article title
