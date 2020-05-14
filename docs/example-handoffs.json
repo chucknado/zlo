@@ -1,0 +1,127 @@
+{
+  "2019-01-09": {
+    "articles": [
+      {
+        "bump_ok": false,
+        "comments": "Moved up from slow track list",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "chat",
+        "id": 360001301627,
+        "title": "Enabling authenticated visitors in the integrated Web Widget",
+        "writer": "AS"
+      },
+      {
+        "bump_ok": false,
+        "comments": "Moved up from slow track list",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "chat",
+        "id": 360000776627,
+        "title": "Enabling authenticated visitors in the Chat widget",
+        "writer": "AS"
+      },
+      {
+        "bump_ok": false,
+        "comments": "New article title and content changes to support Answer Bot seasonality.",
+        "deferred_id": null,
+        "en_images": true,
+        "hc": "help",
+        "id": 360001945927,
+        "title": "Viewing temporary subscriptions",
+        "writer": "LK"
+      },
+      {
+        "bump_ok": false,
+        "comments": "",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "support",
+        "id": 203663226,
+        "title": "search reference",
+        "writer": ""
+      }
+    ],
+    "status": "done"
+  },
+  "2019-01-23": {
+    "articles": [
+      {
+        "bump_ok": false,
+        "comments": "Updated content for Ticket 4385495",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "support",
+        "id": 218995728,
+        "title": "Billing FAQ",
+        "writer": "LK"
+      },
+      {
+        "bump_ok": false,
+        "comments": "Translation requested by ticket 4134142. This is a support tip.",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "support",
+        "id": 205693448,
+        "title": "Sending automated ticket reminders to customers",
+        "writer": "AM"
+      },
+      {
+        "bump_ok": false,
+        "comments": "For ticket 4134915. New note.",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "support",
+        "id": 206373587,
+        "title": "Using 2-factor authentication",
+        "writer": "AM"
+      }
+    ],
+    "status": "done"
+  },
+  "2019-02-06": {
+    "articles": [
+      {
+        "bump_ok": false,
+        "comments": "",
+        "deferred_id": null,
+        "en_images": true,
+        "hc": "explore",
+        "id": 115005204787,
+        "title": "Overview of the Zendesk Support dashboard",
+        "writer": "RS"
+      },
+      {
+        "bump_ok": false,
+        "comments": "Ticket 4213423",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "support",
+        "id": 360001263308,
+        "title": "Using side conversations in tickets (add-on)",
+        "writer": "RS"
+      },
+      {
+        "bump_ok": true,
+        "comments": "Ticket 4034263",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "support",
+        "id": 203661556,
+        "title": "Setting up your Facebook channel\n",
+        "writer": "AM"
+      },
+      {
+        "bump_ok": true,
+        "comments": "Ticket 4139404",
+        "deferred_id": null,
+        "en_images": false,
+        "hc": "support",
+        "id": 204265396,
+        "title": "Enabling attachments in tickets",
+        "writer": "AM"
+      }
+    ],
+    "status": "done"
+  }
+}

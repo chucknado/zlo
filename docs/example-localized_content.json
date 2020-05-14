@@ -1,0 +1,92 @@
+[
+  {
+    "Articles": [
+      360022186254,
+      360022186234,
+      360022368073,
+      360022368133
+    ],
+    "Images": [
+      "email_piping_on.png",
+      "embed_web_widget_script-chat.png",
+      "filter_by_dept.jpg"
+    ],
+    "Locale": "de"
+  },
+  {
+    "Articles": [
+      360022186254,
+      360022186234,
+      360022368073,
+      360022368133
+    ],
+    "Images": [
+      "done_conversations.png",
+      "email_piping_on.png",
+      "embed_web_widget_script-chat.png",
+      "filter_by_dept.jpg"
+    ],
+    "Locale": "es"
+  },
+  {
+    "Articles": [
+      360022186234,
+      360022368073,
+      360022368133
+    ],
+    "Images": [
+      "done_conversations.png",
+      "email_piping_on.png",
+      "embed_web_widget_script-chat.png",
+      "filter_by_dept.jpg"
+    ],
+    "Locale": "fr"
+  },
+  {
+    "Articles": [
+      360022186454,
+      360022186254,
+      360022186234,
+      360022368073,
+      360022368133
+    ],
+    "Images": [
+      "done_conversations.png",
+      "email_piping_on.png",
+      "embed_web_widget_script-chat.png",
+      "filter_by_dept.jpg"
+    ],
+    "Locale": "ja"
+  },
+    {
+    "Articles": [
+      360022186254,
+      360022186234,
+      360022368073,
+      360022368133
+    ],
+    "Images": [
+      "done_conversations.png",
+      "email_piping_on.png",
+      "embed_web_widget_script-chat.png",
+      "filter_by_dept.jpg"
+    ],
+    "Locale": "pt-br"
+  },
+  {
+    "Articles": [
+      360022186254,
+      360022186234,
+      360022368073,
+      360022368133
+    ],
+    "Images": [
+      "department_filter2.jpg",
+      "done_conversations.png",
+      "email_piping_on.png",
+      "embed_web_widget_script-chat.png",
+      "filter_by_dept.jpg"
+    ],
+    "Locale": "ko"
+  }
+]
